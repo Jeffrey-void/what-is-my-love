@@ -1,6 +1,8 @@
 import streamlit as st
 from ai_helper import ask_ai
 import json
+import os
+from datetime import datetime
 
 # 페이지 설정
 st.set_page_config(
@@ -216,13 +218,46 @@ if st.session_state.recommendations:
 
             st.markdown("")
 
-    # 다시 선택 버튼
+    # 저장 및 다시 선택 버튼
     st.markdown("---")
-    if st.button("🔄 다시 선택하기", use_container_width=True):
-        st.session_state.selected_personality = None
-        st.session_state.selected_mood = None
-        st.session_state.recommendations = None
-        st.rerun()
+    col1, col2, col3 = st.columns(3)
+
+    # 결과를 저장할 데이터 구성
+    save_data = {
+        "성격": st.session_state.selected_personality,
+        "기분": st.session_state.selected_mood,
+        "추천_날짜": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "추천_결과": st.session_state.recommendations
+    }
+    json_str = json.dumps(save_data, ensure_ascii=False, indent=2)
+
+    with col1:
+        st.download_button(
+            label="📥 JSON 다운로드",
+            data=json_str,
+            file_name=f"추천_결과_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            use_container_width=True
+        )
+
+    with col2:
+        if st.button("💾 로컬에 저장", use_container_width=True):
+            # saved_recommendations 폴더 생성
+            os.makedirs("saved_recommendations", exist_ok=True)
+
+            # 파일 저장
+            filename = f"saved_recommendations/추천_결과_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(save_data, f, ensure_ascii=False, indent=2)
+
+            st.success(f"✅ 저장 완료!\n📁 위치: {os.path.abspath(filename)}")
+
+    with col3:
+        if st.button("🔄 다시 선택하기", use_container_width=True):
+            st.session_state.selected_personality = None
+            st.session_state.selected_mood = None
+            st.session_state.recommendations = None
+            st.rerun()
 
 elif st.session_state.loading:
     st.info("⏳ 처리 중입니다...")
